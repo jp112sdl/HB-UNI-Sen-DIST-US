@@ -27,9 +27,9 @@
 #define BATT_SENS_PIN      17
 
 // number of channels
-#define CHANNELS          1
+#define CHANNELS           1
 // number of available peers per channel
-#define PEERS_PER_CHANNEL 6
+#define PEERS_PER_CHANNEL  6
 
 // all library classes are placed in the namespace 'as'
 using namespace as;
@@ -97,23 +97,27 @@ class UList1 : public RegList1<UReg1> {
 
 class MeasureEventMsg : public Message {
   public:
-    void init(uint8_t msgcnt, uint8_t channel, uint8_t batlow, uint16_t dist, uint8_t volt) {
-      Message::init(0x0e, msgcnt, 0x53, BCAST , batlow ? 0x80 : 0x00, channel & 0xff);
-      pload[0] = (dist >> 8) & 0xff;
-      pload[1] = dist & 0xff;
-      pload[2] = volt & 0xff;
+    void init(uint8_t msgcnt, uint8_t channel, uint16_t dist, uint8_t volt) {
+      Message::init(0x0e, msgcnt, 0x53, (msgcnt % 20 == 1) ? BIDI : BCAST, channel & 0xff, (dist >> 8) & 0xff);
+      pload[0] = dist & 0xff;
+      pload[1] = volt & 0xff;
     }
 };
 
 class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_CHANNEL, UList0>, public Alarm {
     MeasureEventMsg msg;
     uint16_t        distance;
+    uint8_t         last_flags = 0xff;
 
   public:
     MeasureChannel () : Channel(), Alarm(0), distance(0) {}
     virtual ~MeasureChannel () {}
 
     void measure() {
+      if (last_flags != flags()) {
+        this->changed(true);
+        last_flags = flags();
+      }
       digitalWrite(SENSOR_EN_PIN, HIGH);
       _delay_ms(400);
       digitalWrite(SENSOR_TRIG_PIN, LOW);
@@ -130,7 +134,7 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
     virtual void trigger (__attribute__ ((unused)) AlarmClock& clock) {
       measure();
       tick = delay();
-      msg.init(device().nextcount(), number(),   device().battery().low(), distance,  device().battery().current());
+      msg.init(device().nextcount(), number(), distance,  device().battery().current());
       device().sendPeerEvent(msg, *this);
       sysclock.add(*this);
     }
@@ -158,7 +162,8 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
     }
 
     uint8_t flags () const {
-      return 0;
+      uint8_t flags = this->device().battery().low() ? 0x80 : 0x00;
+      return flags;
     }
 };
 

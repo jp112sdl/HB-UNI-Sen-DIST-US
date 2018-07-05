@@ -85,13 +85,20 @@ class UList0 : public RegList0<UReg0> {
     }
 };
 
-DEFREGISTER(UReg1)
+DEFREGISTER(UReg1, 0x01, 0x02)
 class UList1 : public RegList1<UReg1> {
   public:
     UList1 (uint16_t addr) : RegList1<UReg1>(addr) {}
+    bool DistanceOffset (uint16_t value) const {
+      return this->writeRegister(0x01, (value >> 8) & 0xff) && this->writeRegister(0x02, value & 0xff);
+    }
+    uint16_t DistanceOffset () const {
+      return (this->readRegister(0x01, 0) << 8) + this->readRegister(0x02, 0);
+    }
+    
     void defaults () {
-      //just Skeleton
       clear();
+      DistanceOffset(0);
     }
 };
 
@@ -107,6 +114,7 @@ class MeasureEventMsg : public Message {
 class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_CHANNEL, UList0>, public Alarm {
     MeasureEventMsg msg;
     uint16_t        distance;
+    uint16_t        distanceOffset;
     uint8_t         last_flags = 0xff;
 
   public:
@@ -114,10 +122,12 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
     virtual ~MeasureChannel () {}
 
     void measure() {
+      uint16_t m_value = 0;
       if (last_flags != flags()) {
         this->changed(true);
         last_flags = flags();
       }
+      
       digitalWrite(SENSOR_EN_PIN, HIGH);
       _delay_ms(400);
       digitalWrite(SENSOR_TRIG_PIN, LOW);
@@ -125,9 +135,14 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
       digitalWrite(SENSOR_TRIG_PIN, HIGH);
       delayMicroseconds(10);
       digitalWrite(SENSOR_TRIG_PIN, LOW);
-      distance = pulseIn(SENSOR_ECHO_PIN, HIGH, 26000);
-      distance = distance / 58;
+      m_value = pulseIn(SENSOR_ECHO_PIN, HIGH, 26000);
+      m_value = m_value / 58;
       digitalWrite(SENSOR_EN_PIN, LOW);
+
+      distance = (m_value > distanceOffset) ? m_value - distanceOffset : 0;
+      
+      DPRINT(F("MEASURE : ")); DDEC(m_value); DPRINTLN(F(" cm"));
+      DPRINT(F("OFFSET  : ")); DDEC(distanceOffset); DPRINTLN(F(" cm"));
       DPRINT(F("DISTANCE: ")); DDEC(distance); DPRINTLN(F(" cm"));
     }
 
@@ -147,6 +162,8 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
     }
 
     void configChanged() {
+      distanceOffset = this->getList1().DistanceOffset();
+      DPRINT(F("*DISTANCE OFFSET: "));DDECLN(distanceOffset);
     }
 
     void setup(Device<Hal, UList0>* dev, uint8_t number, uint16_t addr) {

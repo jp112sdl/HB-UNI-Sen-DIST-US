@@ -12,7 +12,7 @@ Um die Geräteunterstützung zu aktivieren, wird die aktuellste Version des [JP-
 - Kleinteile...
   - 1x LED
   - 1x Taster
-  - Widerstände, je 1x 330 Ohm, 100kOhm, 470kOm
+  - Widerstände, je 1x 330 Ohm, 100kOhm, 470kOhm
 
 #### Verdrahtung
 ![wiring](Images/wiring.png)

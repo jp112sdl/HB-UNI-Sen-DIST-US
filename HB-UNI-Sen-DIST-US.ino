@@ -20,10 +20,17 @@
 #define CONFIG_BUTTON_PIN  8
 #define LED_PIN            4
 
-//                  SENSOR  1   2
-byte SENSOR_EN_PINS[]   =  {5,  7}; //VCC Pin des Sensors
-byte SENSOR_ECHO_PINS[] =  {6,  3};
-byte SENSOR_TRIG_PINS[] =  {14, 9};
+// 1 SENSOR
+//                  SENSOR  1
+byte SENSOR_EN_PINS[]   =  {5}; //VCC Pin des Sensors
+byte SENSOR_ECHO_PINS[] =  {6};
+byte SENSOR_TRIG_PINS[] =  {14};
+
+//// 2 SENSOREN
+////                  SENSOR  1   2
+//byte SENSOR_EN_PINS[]   =  {5,  7}; //VCC Pin des Sensors
+//byte SENSOR_ECHO_PINS[] =  {6,  3};
+//byte SENSOR_TRIG_PINS[] =  {14, 9};
 
 #define BATT_EN_PIN        15 //A1
 #define BATT_SENS_PIN      17 //A3
@@ -43,7 +50,7 @@ const struct DeviceInfo PROGMEM devinfo = {
   "JPDIST0001",                // Device Serial
   {0xF9, 0xD6},                // Device Model
   0x10,                        // Firmware Version
-  0x53,    // Device Type
+  0x53,                        // Device Type
   {0x01, 0x01}                 // Info Bytes
 };
 
@@ -95,7 +102,7 @@ class UList1 : public RegList1<UReg1> {
     uint16_t DistanceOffset () const {
       return (this->readRegister(0x01, 0) << 8) + this->readRegister(0x02, 0);
     }
-
+    
     void defaults () {
       clear();
       DistanceOffset(0);
@@ -127,22 +134,24 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
         last_flags = flags();
       }
 
-      digitalWrite(SENSOR_EN_PINS[number() -1], HIGH);
+      digitalWrite(SENSOR_EN_PINS[number() - 1], HIGH);
       _delay_ms(400);
-      digitalWrite(SENSOR_TRIG_PINS[number() -1], LOW);
+      digitalWrite(SENSOR_TRIG_PINS[number() - 1], LOW);
       delayMicroseconds(2);
-      digitalWrite(SENSOR_TRIG_PINS[number() -1], HIGH);
+      digitalWrite(SENSOR_TRIG_PINS[number() - 1], HIGH);
       delayMicroseconds(10);
-      digitalWrite(SENSOR_TRIG_PINS[number() -1], LOW);
-      m_value = pulseIn(SENSOR_ECHO_PINS[number() -1], HIGH, 26000);
+      digitalWrite(SENSOR_TRIG_PINS[number() - 1], LOW);
+      m_value = pulseIn(SENSOR_ECHO_PINS[number() - 1], HIGH, 26000);
       m_value = m_value / 58;
-      digitalWrite(SENSOR_EN_PINS[number() -1], LOW);
+      digitalWrite(SENSOR_EN_PINS[number() - 1], LOW);
+
+      m_value = random(20, 600);
 
       distance = (m_value > this->getList1().DistanceOffset()) ? m_value - this->getList1().DistanceOffset() : 0;
 
-      DPRINT(F("MEASURE ("));DDEC(number());DPRINT(F("): ")); DDEC(m_value); DPRINTLN(F(" cm"));
-      DPRINT(F("OFFSET  ("));DDEC(number());DPRINT(F("): ")); DDEC(this->getList1().DistanceOffset()); DPRINTLN(F(" cm"));
-      DPRINT(F("DISTANCE("));DDEC(number());DPRINT(F("): ")); DDEC(distance); DPRINTLN(F(" cm"));
+      DPRINT(F("MEASURE (")); DDEC(number()); DPRINT(F("): ")); DDEC(m_value); DPRINTLN(F(" cm"));
+      DPRINT(F("OFFSET  (")); DDEC(number()); DPRINT(F("): ")); DDEC(this->getList1().DistanceOffset()); DPRINTLN(F(" cm"));
+      DPRINT(F("DISTANCE(")); DDEC(number()); DPRINT(F("): ")); DDEC(distance); DPRINTLN(F(" cm"));
     }
 
     virtual void trigger (__attribute__ ((unused)) AlarmClock& clock) {
@@ -154,14 +163,11 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
     }
 
     uint32_t delay () {
-      uint16_t _txMindelay = 20;
-      _txMindelay = device().getList0().Sendeintervall();
-      if (_txMindelay == 0) _txMindelay = 20;
-      return seconds2ticks(_txMindelay  * SYSCLOCK_FACTOR);
+      return seconds2ticks(max(10,device().getList0().Sendeintervall()) * SYSCLOCK_FACTOR);
     }
 
     void configChanged() {
-      DPRINT(F("*DISTANCE OFFSET ("));DDEC(number());DPRINT(F("): ")); DDECLN(this->getList1().DistanceOffset());
+      DPRINT(F("*DISTANCE OFFSET (")); DDEC(number()); DPRINT(F("): ")); DDECLN(this->getList1().DistanceOffset());
     }
 
     void setup(Device<Hal, UList0>* dev, uint8_t number, uint16_t addr) {

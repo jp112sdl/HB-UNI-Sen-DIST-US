@@ -22,15 +22,15 @@
 
 // 1 SENSOR
 //                  SENSOR  1
-byte SENSOR_EN_PINS[]   =  {5}; //VCC Pin des Sensors
-byte SENSOR_ECHO_PINS[] =  {6};
-byte SENSOR_TRIG_PINS[] =  {14};
+//byte SENSOR_EN_PINS[]   =  {5}; //VCC Pin des Sensors
+//byte SENSOR_ECHO_PINS[] =  {6};
+//byte SENSOR_TRIG_PINS[] =  {14};
 
 //// 2 SENSOREN
 ////                  SENSOR  1   2
-//byte SENSOR_EN_PINS[]   =  {5,  7}; //VCC Pin des Sensors
-//byte SENSOR_ECHO_PINS[] =  {6,  3};
-//byte SENSOR_TRIG_PINS[] =  {14, 9};
+byte SENSOR_EN_PINS[]   =  {5,  7}; //VCC Pin des Sensors
+byte SENSOR_ECHO_PINS[] =  {6,  3};
+byte SENSOR_TRIG_PINS[] =  {14, 9};
 
 #define BATT_EN_PIN        15 //A1
 #define BATT_SENS_PIN      17 //A3
@@ -43,6 +43,11 @@ using namespace as;
 
 //Korrekturfaktor der Clock-Ungenauigkeit, wenn keine RTC verwendet wird
 #define SYSCLOCK_FACTOR    0.88
+
+enum UltrasonicSensorTypes {
+  JSN_SR04T,
+  MAXSONAR
+};
 
 // define all device properties
 const struct DeviceInfo PROGMEM devinfo = {
@@ -92,20 +97,28 @@ class UList0 : public RegList0<UReg0> {
     }
 };
 
-DEFREGISTER(UReg1, 0x01, 0x02)
+DEFREGISTER(UReg1, 0x01, 0x02, 0x03)
 class UList1 : public RegList1<UReg1> {
   public:
     UList1 (uint16_t addr) : RegList1<UReg1>(addr) {}
-    bool DistanceOffset (uint16_t value) const {
+    bool distanceOffset (uint16_t value) const {
       return this->writeRegister(0x01, (value >> 8) & 0xff) && this->writeRegister(0x02, value & 0xff);
     }
-    uint16_t DistanceOffset () const {
+    uint16_t distanceOffset () const {
       return (this->readRegister(0x01, 0) << 8) + this->readRegister(0x02, 0);
     }
-    
+
+    bool sensorType (uint16_t value) const {
+      return this->writeRegister(0x03, value & 0xff);
+    }
+    uint16_t sensorType () const {
+      return this->readRegister(0x03, 0);
+    }
+
     void defaults () {
       clear();
-      DistanceOffset(0);
+      distanceOffset(0);
+      sensorType(0);
     }
 };
 
@@ -134,23 +147,32 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
         last_flags = flags();
       }
 
-      digitalWrite(SENSOR_EN_PINS[number() - 1], HIGH);
-      _delay_ms(400);
-      digitalWrite(SENSOR_TRIG_PINS[number() - 1], LOW);
-      delayMicroseconds(2);
-      digitalWrite(SENSOR_TRIG_PINS[number() - 1], HIGH);
-      delayMicroseconds(10);
-      digitalWrite(SENSOR_TRIG_PINS[number() - 1], LOW);
-      m_value = pulseIn(SENSOR_ECHO_PINS[number() - 1], HIGH, 26000);
-      m_value = m_value / 58;
-      digitalWrite(SENSOR_EN_PINS[number() - 1], LOW);
+      switch (this->getList1().sensorType()) {
+        case JSN_SR04T:
+          digitalWrite(SENSOR_EN_PINS[number() - 1], HIGH);
+          _delay_ms(300);
+          digitalWrite(SENSOR_TRIG_PINS[number() - 1], LOW);
+          delayMicroseconds(2);
+          digitalWrite(SENSOR_TRIG_PINS[number() - 1], HIGH);
+          delayMicroseconds(10);
+          digitalWrite(SENSOR_TRIG_PINS[number() - 1], LOW);
+          m_value = pulseIn(SENSOR_ECHO_PINS[number() - 1], HIGH, 26000);
+          m_value = m_value / 58;
+          digitalWrite(SENSOR_EN_PINS[number() - 1], LOW);
+          break;
+        case MAXSONAR:
+          m_value = pulseIn(SENSOR_ECHO_PINS[number() - 1], HIGH);
+          m_value = (m_value / 147) * (254 / 100);
+          break;
+        default:
+          DPRINTLN(F("Invalid Sensor Type selected"));
+          break;
+      }
 
-      m_value = random(20, 600);
-
-      distance = (m_value > this->getList1().DistanceOffset()) ? m_value - this->getList1().DistanceOffset() : 0;
+      distance = (m_value > this->getList1().distanceOffset()) ? m_value - this->getList1().distanceOffset() : 0;
 
       DPRINT(F("MEASURE (")); DDEC(number()); DPRINT(F("): ")); DDEC(m_value); DPRINTLN(F(" cm"));
-      DPRINT(F("OFFSET  (")); DDEC(number()); DPRINT(F("): ")); DDEC(this->getList1().DistanceOffset()); DPRINTLN(F(" cm"));
+      DPRINT(F("OFFSET  (")); DDEC(number()); DPRINT(F("): ")); DDEC(this->getList1().distanceOffset()); DPRINTLN(F(" cm"));
       DPRINT(F("DISTANCE(")); DDEC(number()); DPRINT(F("): ")); DDEC(distance); DPRINTLN(F(" cm"));
     }
 
@@ -163,11 +185,12 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
     }
 
     uint32_t delay () {
-      return seconds2ticks(max(10,device().getList0().Sendeintervall()) * SYSCLOCK_FACTOR);
+      return seconds2ticks(max(10, device().getList0().Sendeintervall()) * SYSCLOCK_FACTOR);
     }
 
     void configChanged() {
-      DPRINT(F("*DISTANCE OFFSET (")); DDEC(number()); DPRINT(F("): ")); DDECLN(this->getList1().DistanceOffset());
+      DPRINT(F("*DISTANCE_OFFSET (")); DDEC(number()); DPRINT(F("): ")); DDECLN(this->getList1().distanceOffset());
+      DPRINT(F("*SENSOR_TYPE     (")); DDEC(number()); DPRINT(F("): ")); DDECLN(this->getList1().sensorType());
     }
 
     void setup(Device<Hal, UList0>* dev, uint8_t number, uint16_t addr) {

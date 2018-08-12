@@ -22,15 +22,15 @@
 
 // 1 SENSOR
 //                  SENSOR  1
-//byte SENSOR_EN_PINS[]   =  {5}; //VCC Pin des Sensors
-//byte SENSOR_ECHO_PINS[] =  {6};
-//byte SENSOR_TRIG_PINS[] =  {14};
+byte SENSOR_EN_PINS[]   =  {5}; //VCC Pin des Sensors
+byte SENSOR_ECHO_PINS[] =  {6};
+byte SENSOR_TRIG_PINS[] =  {14};
 
 //// 2 SENSOREN
 ////                  SENSOR  1   2
-byte SENSOR_EN_PINS[]   =  {5,  7}; //VCC Pin des Sensors
-byte SENSOR_ECHO_PINS[] =  {6,  3};
-byte SENSOR_TRIG_PINS[] =  {14, 9};
+//byte SENSOR_EN_PINS[]   =  {5,  7}; //VCC Pin des Sensors
+//byte SENSOR_ECHO_PINS[] =  {6,  3};
+//byte SENSOR_TRIG_PINS[] =  {14, 9};
 
 #define BATT_EN_PIN        15 //A1
 #define BATT_SENS_PIN      17 //A3
@@ -141,7 +141,7 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
     virtual ~MeasureChannel () {}
 
     void measure() {
-      uint16_t m_value = 0;
+      uint32_t m_value = 0;
       if (last_flags != flags()) {
         this->changed(true);
         last_flags = flags();
@@ -161,8 +161,11 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
           digitalWrite(SENSOR_EN_PINS[number() - 1], LOW);
           break;
         case MAXSONAR:
+          digitalWrite(SENSOR_EN_PINS[number() - 1], HIGH);
+          _delay_ms(200);
           m_value = pulseIn(SENSOR_ECHO_PINS[number() - 1], HIGH);
-          m_value = (m_value / 147) * (254 / 100);
+          m_value = (m_value * 1000L / 57874L);
+          digitalWrite(SENSOR_EN_PINS[number() - 1], LOW);
           break;
         default:
           DPRINTLN(F("Invalid Sensor Type selected"));

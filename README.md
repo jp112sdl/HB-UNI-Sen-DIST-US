@@ -22,3 +22,6 @@ Um die Geräteunterstützung zu aktivieren, wird die aktuellste Version des [JP-
 
 #### WebUI
 ![ccustatus](Images/CCU_Status.png)
+
+#### CCU Geräteeinstellungen
+![ccu_setting](Images/CCU_Einstellungen.png)

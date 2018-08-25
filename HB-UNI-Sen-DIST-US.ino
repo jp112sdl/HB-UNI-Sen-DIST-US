@@ -157,7 +157,7 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
           delayMicroseconds(10);
           digitalWrite(SENSOR_TRIG_PINS[number() - 1], LOW);
           m_value = pulseIn(SENSOR_ECHO_PINS[number() - 1], HIGH, 26000);
-          m_value = m_value / 58;
+          m_value = (m_value * 1000L / 57874L);
           digitalWrite(SENSOR_EN_PINS[number() - 1], LOW);
           break;
         case MAXSONAR:

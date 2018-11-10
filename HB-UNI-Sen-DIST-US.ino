@@ -239,8 +239,8 @@ void setup () {
   if (sizeof(SENSOR_EN_PINS) != sizeof(SENSOR_EN_PINS) || sizeof(SENSOR_ECHO_PINS) != sizeof(SENSOR_ECHO_PINS) || sizeof(SENSOR_TRIG_PINS) != sizeof(SENSOR_TRIG_PINS)) {
     DPRINTLN(F("!!! ERROR: SENSOR PIN ARRAYS PRÜFEN"));
   } else {
-    printDeviceInfo();
     sdev.init(hal);
+    DDEVINFO(sdev);
     buttonISR(cfgBtn, CONFIG_BUTTON_PIN);
     sdev.initDone();
   }
@@ -252,20 +252,6 @@ void loop() {
   if ( worked == false && poll == false ) {
     hal.activity.savePower<Sleep<>>(hal);
   }
-}
-
-void printDeviceInfo() {
-  HMID ids;
-  sdev.getDeviceID(ids);
-
-  uint8_t ser[10];
-  sdev.getDeviceSerial(ser);
-
-  DPRINT(F("Device Info: "));
-  for (int i = 0; i < 10; i++) {
-    DPRINT(char(ser[i]));
-  }
-  DPRINT(" ("); DHEX(ids); DPRINTLN(")");
 }
 
 

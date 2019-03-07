@@ -45,8 +45,8 @@ using namespace as;
 #define SYSCLOCK_FACTOR    0.88
 
 enum UltrasonicSensorTypes {
-  JSN_SR04T,
-  MAXSONAR
+  JSN_SR04T_US100,
+  MAXSONAR,
 };
 
 // define all device properties
@@ -147,30 +147,28 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
         last_flags = flags();
       }
 
+      digitalWrite(SENSOR_EN_PINS[number() - 1], HIGH);
+      _delay_ms(300);
+
       switch (this->getList1().sensorType()) {
-        case JSN_SR04T:
-          digitalWrite(SENSOR_EN_PINS[number() - 1], HIGH);
-          _delay_ms(300);
+        case JSN_SR04T_US100:
           digitalWrite(SENSOR_TRIG_PINS[number() - 1], LOW);
           delayMicroseconds(2);
           digitalWrite(SENSOR_TRIG_PINS[number() - 1], HIGH);
           delayMicroseconds(10);
           digitalWrite(SENSOR_TRIG_PINS[number() - 1], LOW);
-          m_value = pulseIn(SENSOR_ECHO_PINS[number() - 1], HIGH, 26000);
-          m_value = (m_value * 1000L / 57874L);
-          digitalWrite(SENSOR_EN_PINS[number() - 1], LOW);
           break;
         case MAXSONAR:
-          digitalWrite(SENSOR_EN_PINS[number() - 1], HIGH);
-          _delay_ms(200);
-          m_value = pulseIn(SENSOR_ECHO_PINS[number() - 1], HIGH);
-          m_value = (m_value * 1000L / 57874L);
-          digitalWrite(SENSOR_EN_PINS[number() - 1], LOW);
           break;
         default:
           DPRINTLN(F("Invalid Sensor Type selected"));
           break;
+
       }
+      
+      m_value = pulseIn(SENSOR_ECHO_PINS[number() - 1], HIGH);
+      m_value = (m_value * 1000UL / 57874UL);
+      digitalWrite(SENSOR_EN_PINS[number() - 1], LOW);
 
       distance = (m_value > this->getList1().distanceOffset()) ? m_value - this->getList1().distanceOffset() : 0;
 

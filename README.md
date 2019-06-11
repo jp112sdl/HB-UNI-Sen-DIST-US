@@ -2,7 +2,9 @@
 #### Abstandsensor für HomeMatic
 
 Um die Geräteunterstützung zu aktivieren, wird die aktuellste Version des [JP-HB-Devices Addon](https://github.com/jp112sdl/JP-HB-Devices-addon/releases/latest) benötigt!
-
+<br/><br/>
+‼️ **Achtung:** Aufgrund eines Fehlers in der BatterySensor.h ist zurzeit die [Datei aus dem V4-Branch](https://github.com/pa-pa/AskSinPP/blob/V4/BatterySensor.h) zu verwenden!
+<br/><br/>
 #### Bauteile
 - Batteriehalter für 3 oder 4 Batterien
 - Ultraschallsensor:

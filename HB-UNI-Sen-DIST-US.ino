@@ -125,7 +125,7 @@ class UList1 : public RegList1<UReg1> {
 class MeasureEventMsg : public Message {
   public:
     void init(uint8_t msgcnt, uint8_t channel, uint16_t dist, uint8_t volt) {
-      Message::init(0x0e, msgcnt, 0x53, (msgcnt % 20 == 1) ? (BIDI | WKMEUP) : BCAST, channel & 0xff, (dist >> 8) & 0xff);
+      Message::init(0x0e, msgcnt, 0x53, BIDI | WKMEUP, channel & 0xff, (dist >> 8) & 0xff);
       pload[0] = dist & 0xff;
       pload[1] = volt & 0xff;
     }
@@ -179,9 +179,10 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
 
     virtual void trigger (__attribute__ ((unused)) AlarmClock& clock) {
       measure();
+      uint8_t msgcnt = device().nextcount();
       tick = delay();
-      msg.init(device().nextcount(), number(), distance,  device().battery().current());
-      device().sendPeerEvent(msg, *this);
+      msg.init(msgcnt, number(), distance,  device().battery().current());
+      if (msgcnt % 20 == 1) device().sendPeerEvent(msg, *this); else device().broadcastEvent(msg, *this);
       sysclock.add(*this);
     }
 

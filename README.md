@@ -8,6 +8,7 @@ Um die Geräteunterstützung zu aktivieren, wird die aktuellste Version des [JP-
 - Ultraschallsensor:
   - z.B. [JSN-SR04T V2.0](https://de.aliexpress.com/item/Integrated-Ultrasonic-Module-Distance-Measuring-Sensor-Module-Reversing-Radar-Waterproof/32312190912.html)
     - **Hinweis:** Unbedingt die **V2.0** nehmen, weil diese auch mit 3.3V zuverlässig arbeitet!
+  - [RCW-0001](https://www.ebay.de/itm/253281177316)
   - oder MaxBotix [MB1040](https://de.aliexpress.com/item/NEW-Mini-uav-obstacle-avoidance-ultrasonic-ranging-module-MB1040-High-Performance-Sonar-Range-Finder/32862912642.html)
   
 - [CC1101 (868MHz)](https://de.aliexpress.com/item/CC1101-Wireless-Module-Long-Distance-Transmission-Antenna-868MHZ-M115-For-FSK-GFSK-ASK-OOK-MSK-64/32635393463.html) 

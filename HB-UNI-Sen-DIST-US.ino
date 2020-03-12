@@ -2,6 +2,7 @@
 // AskSin++
 // 2016-10-31 papa Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 // 2018-04-16 jp112sdl Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2020-02-26 Wolfram Winter Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //- -----------------------------------------------------------------------------------------------------------------------
 
 // define this to read the device id, serial and device type from bootloader section
@@ -147,6 +148,8 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
         last_flags = flags();
       }
 
+      pinMode(SENSOR_ECHO_PINS[number() - 1], INPUT_PULLUP);
+      _delay_ms(300);
       digitalWrite(SENSOR_EN_PINS[number() - 1], HIGH);
       _delay_ms(300);
 
@@ -169,6 +172,7 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
       m_value = pulseIn(SENSOR_ECHO_PINS[number() - 1], HIGH);
       m_value = (m_value * 1000UL / 57874UL);
       digitalWrite(SENSOR_EN_PINS[number() - 1], LOW);
+      pinMode(SENSOR_ECHO_PINS[number() - 1], INPUT);
 
       distance = (m_value > this->getList1().distanceOffset()) ? m_value - this->getList1().distanceOffset() : 0;
 
@@ -198,7 +202,8 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
     void setup(Device<Hal, UList0>* dev, uint8_t number, uint16_t addr) {
       Channel::setup(dev, number, addr);
       for (byte i = 0; i < sizeof(SENSOR_EN_PINS); i++) {
-        pinMode(SENSOR_ECHO_PINS[i], INPUT_PULLUP);
+        // pinMode(SENSOR_ECHO_PINS[i], INPUT_PULLUP);
+        pinMode(SENSOR_ECHO_PINS[i], INPUT);
         pinMode(SENSOR_TRIG_PINS[i], OUTPUT);
         pinMode(SENSOR_EN_PINS[i], OUTPUT);
       }
@@ -252,5 +257,3 @@ void loop() {
     hal.activity.savePower<Sleep<>>(hal);
   }
 }
-
-
